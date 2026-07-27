@@ -129,6 +129,60 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* REAL MAP SECTION — Chuka University Area */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+          <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-sm">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900">Chuka University Area — Live Map</h2>
+                <p className="text-xs text-slate-500">Explore Gate A, Gate B, Lowlands, Mungoni, Mariani Ridge &amp; Ndagani Market</p>
+              </div>
+            </div>
+            <Link
+              href="/houses?view=map"
+              className="inline-flex items-center gap-2 bg-brand-primary text-white text-xs font-extrabold px-5 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-md shrink-0"
+            >
+              <Search className="w-4 h-4" /> Browse All Houses on Map
+            </Link>
+          </div>
+          {/* Real Google Maps embed of Chuka University */}
+          <div className="w-full h-[420px] sm:h-[480px]">
+            <iframe
+              title="Chuka University Area Map"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15954.98342870396!2d37.63523!3d-0.334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x18287e7d4fef5ee3%3A0x8e67b9b4e2b5e4d2!2sChuka%20University!5e0!3m2!1sen!2ske!4v1716000000000!5m2!1sen!2ske"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+          {/* Zone Quick Links */}
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 border-t border-slate-100">
+            {[
+              { zone: 'Gate A (Main Entrance)', href: '/houses?area=gate-a' },
+              { zone: 'Gate B (KK Mwendwa Rd)', href: '/houses?area=gate-b' },
+              { zone: 'Lowlands Area', href: '/houses?area=lowlands' },
+              { zone: 'Mariani Ridge', href: '/houses?area=mariani' },
+            ].map(({ zone, href }) => (
+              <Link
+                key={zone}
+                href={href}
+                className="text-[11px] font-bold text-slate-700 hover:text-brand-primary bg-white border border-slate-200 rounded-xl px-3 py-2 text-center hover:border-emerald-400 transition-all flex items-center justify-center gap-1"
+              >
+                <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                {zone}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FEATURED HOUSES SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">

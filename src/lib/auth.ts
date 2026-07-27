@@ -71,7 +71,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (!existingUser) {
-            // Auto-register Google user into Neon PostgreSQL database
             await prisma.user.create({
               data: {
                 name: user.name || 'Chuka Student',
@@ -90,13 +89,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, user }) {
-      const email = user?.email || token?.email;
-      if (email) {
-        const dbUser = await prisma.user.findUnique({ where: { email } });
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role;
-          token.verificationStatus = dbUser.verificationStatus;
+      // High-performance token caching — DB lookup ONLY on initial sign-in
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role || 'STUDENT';
+        token.verificationStatus = (user as any).verificationStatus || 'UNVERIFIED';
+
+        const email = user.email || token.email;
+        if (email) {
+          const dbUser = await prisma.user.findUnique({ where: { email } });
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+            token.verificationStatus = dbUser.verificationStatus;
+          }
         }
       }
       return token;

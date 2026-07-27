@@ -2,14 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Home, Search, MessageSquare, User, Menu, X, CheckCircle, PlusCircle } from 'lucide-react';
+import { ShieldCheck, Home, Search, MessageSquare, User, Menu, X, CheckCircle, PlusCircle, GraduationCap, Building2, LogIn } from 'lucide-react';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeUser, setActiveUser] = useState<{ name: string; role: string } | null>({
-    name: "Alex Mutua",
-    role: "STUDENT"
-  });
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full glass-effect border-b border-slate-200/80 transition-all duration-300">
@@ -51,40 +48,70 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          {/* User Auth & Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link 
-              href="/pricing" 
+          {/* Auth buttons — always visible, no mock user */}
+          <div className="hidden md:flex items-center space-x-3">
+            
+            {/* Post Listing */}
+            <Link
+              href="/register"
               className="inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-bold text-brand-primary bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
             >
               <PlusCircle className="w-4 h-4 text-emerald-600" />
               <span>List Your Property</span>
             </Link>
 
-            {activeUser ? (
-              <div className="flex items-center space-x-3 border-l border-slate-200 pl-4">
-                <Link
-                  href={activeUser.role === 'ADMIN' ? '/dashboard/admin' : activeUser.role === 'LANDLORD' ? '/dashboard/landlord' : '/dashboard/student'}
-                  className="flex items-center space-x-2.5 bg-brand-dark text-white px-4 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-sm text-sm font-semibold"
-                >
-                  <User className="w-4 h-4 text-emerald-400" />
-                  <span>Dashboard</span>
-                </Link>
-                <Link href="/chat" className="p-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors relative">
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
-                </Link>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <Link href="/login" className="text-sm font-bold text-slate-700 hover:text-brand-primary px-3 py-2">
-                  Sign In
-                </Link>
-                <Link href="/register" className="bg-brand-primary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-md">
-                  Register
-                </Link>
-              </div>
-            )}
+            {/* Login */}
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-primary px-3 py-2 rounded-xl hover:bg-slate-50 transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
+
+            {/* Register — Role choice dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowRoleMenu(!showRoleMenu)}
+                className="bg-brand-primary text-white text-sm font-extrabold px-5 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-md flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Register Free
+              </button>
+
+              {showRoleMenu && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-elevated border border-slate-200 overflow-hidden z-50">
+                  <div className="p-2 space-y-1">
+                    <Link
+                      href="/register?role=student"
+                      onClick={() => setShowRoleMenu(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs">I&apos;m a Student</div>
+                        <div className="text-[10px] text-slate-400">Find rooms near Chuka Uni</div>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/register?role=landlord"
+                      onClick={() => setShowRoleMenu(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
+                    >
+                      <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs">I&apos;m a Landlord</div>
+                        <div className="text-[10px] text-slate-400">List rooms &amp; get tenants</div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -106,24 +133,48 @@ export default function Navbar() {
               Browse Houses around Chuka Uni
             </Link>
             <Link href="/reviews" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-slate-50">
-              Student Reviews & Ratings
+              Student Reviews &amp; Ratings
             </Link>
             <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-slate-50">
-              Landlord Plans & Pricing
+              Landlord Plans &amp; Pricing
             </Link>
             <Link href="/faq" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-emerald-50 text-emerald-700">
               Anti-Scam Guidelines
             </Link>
           </div>
+          {/* Mobile Auth Buttons */}
           <div className="pt-4 border-t border-slate-100 flex flex-col space-y-2">
-            <Link href="/dashboard/student" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center bg-brand-dark text-white font-bold py-3 rounded-xl">
-              Go to Dashboard
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+            >
+              <LogIn className="w-4 h-4" /> Sign In
             </Link>
-            <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center bg-emerald-600 text-white font-bold py-3 rounded-xl">
-              Post Listing (Landlord)
+            <Link
+              href="/register?role=student"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full text-center bg-blue-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4" /> Register as Student
+            </Link>
+            <Link
+              href="/register?role=landlord"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full text-center bg-emerald-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
+            >
+              <Building2 className="w-4 h-4" /> Register as Landlord
             </Link>
           </div>
         </div>
+      )}
+
+      {/* Click-outside close for role dropdown */}
+      {showRoleMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowRoleMenu(false)}
+        />
       )}
     </header>
   );

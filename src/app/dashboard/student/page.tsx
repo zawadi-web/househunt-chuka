@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import {
   Heart, Calendar, MessageSquare, ShieldCheck, Search,
   Upload, User, LogOut, Home, Bell, AlertTriangle, X, 
@@ -144,9 +145,12 @@ export default function StudentDashboardPage() {
           <button className="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all">
             <MessageSquare className="w-4 h-4" /> Messages
           </button>
-          <Link href="/api/auth/signout" className="bg-red-500/20 hover:bg-red-500/30 border border-red-300/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all">
+          <button 
+            onClick={() => signOut({ callbackUrl: '/login' })} 
+            className="bg-red-500/20 hover:bg-red-500/30 border border-red-300/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all"
+          >
             <LogOut className="w-4 h-4" /> Sign Out
-          </Link>
+          </button>
         </div>
       </div>
 

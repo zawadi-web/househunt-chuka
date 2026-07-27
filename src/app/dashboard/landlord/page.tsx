@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import {
   PlusCircle, ShieldCheck, Eye, Calendar, Building2,
   Upload, CheckCircle2, AlertCircle, TrendingUp, DollarSign,
@@ -91,9 +92,12 @@ export default function LandlordDashboardPage() {
           <Link href="/chat" className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-white/20 transition-all flex items-center space-x-1.5">
             <MessageSquare className="w-4 h-4 text-emerald-400" /><span>Messages</span>
           </Link>
-          <Link href="/login" className="bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5">
+          <button 
+            onClick={() => signOut({ callbackUrl: '/login' })} 
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5"
+          >
             <LogOut className="w-4 h-4" /><span>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </div>
 

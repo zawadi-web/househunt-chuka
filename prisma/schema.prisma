@@ -111,6 +111,8 @@ model House {
   availableRooms      Int            @default(1)
   totalRooms          Int            @default(1)
   roomType            String         // Single, Bedsitter, 1 Bedroom, 2 Bedroom, Shared
+  paymentPeriod       String         @default("MONTHLY") // MONTHLY, PER_SEMESTER
+  pricePerSemester    Float?         // e.g. 24000 to 36000 KES for hostel semester billing
   
   // Specific Student Amenities
   waterAvailability   String         // 24/7 Borehole, City Water, Tank Backup, Periodic

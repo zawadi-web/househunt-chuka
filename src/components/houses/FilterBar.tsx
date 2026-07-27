@@ -86,25 +86,26 @@ export default function FilterBar({ filters, setFilters, onReset }: FilterBarPro
         </select>
       </div>
 
-      {/* Monthly Budget Slider */}
+      {/* Monthly / Semester Budget Slider */}
       <div>
         <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-2">
-          <span className="uppercase tracking-wider">Max Rent / Month</span>
+          <span className="uppercase tracking-wider">Max Budget</span>
           <span className="text-brand-primary font-extrabold text-sm">KSh {filters.maxPrice.toLocaleString()}</span>
         </div>
         <input
           type="range"
           min={1000}
-          max={20000}
+          max={40000}
           step={500}
           value={filters.maxPrice}
           onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
           className="w-full accent-brand-primary cursor-pointer"
         />
         <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-          <span>KSh 1,000</span>
-          <span>KSh 20,000+</span>
+          <span>KSh 1,000/mo</span>
+          <span>KSh 40,000/sem</span>
         </div>
+        <p className="text-[10px] text-slate-400 mt-1">Applies to both monthly rent &amp; per-semester hostel prices</p>
       </div>
 
       {/* University Distance Slider */}

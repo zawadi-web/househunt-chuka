@@ -37,6 +37,8 @@ export interface House {
   availableRooms: number;
   totalRooms: number;
   roomType: 'Bedsitter' | 'Single' | '1 Bedroom' | '2 Bedroom' | 'Shared';
+  paymentPeriod: 'MONTHLY' | 'PER_SEMESTER';  // How rent is charged
+  pricePerSemester?: number;                  // e.g. 24000 - 36000 KSh
   
   // Amenities
   waterAvailability: '24/7 Borehole' | 'City Water' | 'Tank Backup' | 'Periodic Supply';

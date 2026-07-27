@@ -2,11 +2,27 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Home, Search, MessageSquare, User, Menu, X, CheckCircle, PlusCircle, GraduationCap, Building2, LogIn } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { 
+  ShieldCheck, Home, Search, MessageSquare, User, Menu, X, 
+  CheckCircle, PlusCircle, GraduationCap, Building2, LogIn, 
+  LogOut, LayoutDashboard, ChevronDown 
+} from 'lucide-react';
 
 export default function Navbar() {
+  const { data: session, status } = useSession();
+  const user = session?.user as any;
+  const isLoggedIn = status === 'authenticated' && !!user;
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const getDashboardPath = () => {
+    if (user?.role === 'ADMIN') return '/dashboard/admin';
+    if (user?.role === 'LANDLORD' || user?.role === 'AGENT') return '/dashboard/landlord';
+    return '/dashboard/student';
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full glass-effect border-b border-slate-200/80 transition-all duration-300">
@@ -48,73 +64,164 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          {/* Auth buttons — always visible, no mock user */}
-          <div className="hidden md:flex items-center space-x-3">
+          {/* Desktop Auth Section */}
+          <div className="hidden md:flex items-center space-x-4">
             
-            {/* Post Listing */}
-            <Link
-              href="/register"
+            {/* List Your Property Button */}
+            <Link 
+              href="/dashboard/landlord" 
               className="inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-bold text-brand-primary bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
             >
               <PlusCircle className="w-4 h-4 text-emerald-600" />
               <span>List Your Property</span>
             </Link>
 
-            {/* Login */}
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-primary px-3 py-2 rounded-xl hover:bg-slate-50 transition-all"
-            >
-              <LogIn className="w-4 h-4" />
-              Sign In
-            </Link>
-
-            {/* Register — Role choice dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowRoleMenu(!showRoleMenu)}
-                className="bg-brand-primary text-white text-sm font-extrabold px-5 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-md flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Register Free
-              </button>
-
-              {showRoleMenu && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-elevated border border-slate-200 overflow-hidden z-50">
-                  <div className="p-2 space-y-1">
-                    <Link
-                      href="/register?role=student"
-                      onClick={() => setShowRoleMenu(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
-                    >
-                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
-                        <GraduationCap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs">I&apos;m a Student</div>
-                        <div className="text-[10px] text-slate-400">Find rooms near Chuka Uni</div>
-                      </div>
-                    </Link>
-                    <Link
-                      href="/register?role=landlord"
-                      onClick={() => setShowRoleMenu(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
-                    >
-                      <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs">I&apos;m a Landlord</div>
-                        <div className="text-[10px] text-slate-400">List rooms &amp; get tenants</div>
-                      </div>
-                    </Link>
+            {/* IF LOGGED IN: Show Upper Right Profile Popup Menu (Hides Sign In / Register) */}
+            {isLoggedIn ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center space-x-3 bg-white border border-slate-200 hover:border-brand-primary/50 p-1.5 pr-3 rounded-2xl shadow-sm transition-all"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-brand-primary text-white font-extrabold text-sm flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                    {user?.image ? (
+                      <img src={user.image} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{(user?.name || 'U').charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
+                  <div className="text-left leading-tight">
+                    <div className="font-extrabold text-xs text-slate-900 truncate max-w-[120px]">
+                      {user?.name || 'My Account'}
+                    </div>
+                    <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
+                      {user?.role || 'STUDENT'}
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </button>
+
+                {/* Account Profile Popup Card */}
+                {showProfileMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-3xl shadow-elevated border border-slate-200 overflow-hidden z-50 animate-in fade-in">
+                    {/* User Header */}
+                    <div className="p-4 bg-slate-900 text-white space-y-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand-primary text-white font-extrabold text-base flex items-center justify-center overflow-hidden shrink-0">
+                          {user?.image ? (
+                            <img src={user.image} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{(user?.name || 'U').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-extrabold text-sm text-white truncate">{user?.name || 'Student Account'}</div>
+                          <div className="text-[11px] text-slate-400 truncate">{user?.email}</div>
+                        </div>
+                      </div>
+                      <div className="pt-2 flex items-center gap-1.5">
+                        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase border border-emerald-500/30">
+                          {user?.role || 'STUDENT'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Chuka Uni Verified</span>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2 space-y-1 text-xs font-semibold text-slate-700">
+                      <Link
+                        href={getDashboardPath()}
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-100 transition-all text-slate-900 font-bold"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-brand-primary" />
+                        <span>Go to Dashboard</span>
+                      </Link>
+
+                      <Link
+                        href="/chat"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-100 transition-all"
+                      >
+                        <MessageSquare className="w-4 h-4 text-emerald-600" />
+                        <span>My Messages</span>
+                      </Link>
+
+                      <div className="border-t border-slate-100 my-1 pt-1">
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            signOut({ callbackUrl: '/' });
+                          }}
+                          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-all font-bold"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* IF NOT LOGGED IN: Show Sign In & Register Buttons */
+              <div className="flex items-center space-x-3">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-primary px-3 py-2 rounded-xl hover:bg-slate-50 transition-all"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </Link>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowRoleMenu(!showRoleMenu)}
+                    className="bg-brand-primary text-white text-sm font-extrabold px-5 py-2.5 rounded-xl hover:bg-brand-blue transition-all shadow-md flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Register Free
+                  </button>
+
+                  {showRoleMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-elevated border border-slate-200 overflow-hidden z-50">
+                      <div className="p-2 space-y-1">
+                        <Link
+                          href="/register?role=student"
+                          onClick={() => setShowRoleMenu(false)}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
+                        >
+                          <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <GraduationCap className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs">I&apos;m a Student</div>
+                            <div className="text-[10px] text-slate-400">Find rooms near Chuka Uni</div>
+                          </div>
+                        </Link>
+                        <Link
+                          href="/register?role=landlord"
+                          onClick={() => setShowRoleMenu(false)}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-emerald-50 text-slate-800 transition-all group"
+                        >
+                          <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs">I&apos;m a Landlord</div>
+                            <div className="text-[10px] text-slate-400">List rooms &amp; get tenants</div>
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 focus:outline-none"
@@ -142,38 +249,65 @@ export default function Navbar() {
               Anti-Scam Guidelines
             </Link>
           </div>
-          {/* Mobile Auth Buttons */}
+
+          {/* Mobile Auth Section */}
           <div className="pt-4 border-t border-slate-100 flex flex-col space-y-2">
-            <Link
-              href="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-            >
-              <LogIn className="w-4 h-4" /> Sign In
-            </Link>
-            <Link
-              href="/register?role=student"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center bg-blue-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
-            >
-              <GraduationCap className="w-4 h-4" /> Register as Student
-            </Link>
-            <Link
-              href="/register?role=landlord"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center bg-emerald-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
-            >
-              <Building2 className="w-4 h-4" /> Register as Landlord
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href={getDashboardPath()}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center bg-brand-dark text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-emerald-400" /> My Dashboard ({user?.name || 'Student'})
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    signOut({ callbackUrl: '/' });
+                  }}
+                  className="w-full text-center bg-red-50 text-red-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-red-200"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" /> Sign In
+                </Link>
+                <Link
+                  href="/register?role=student"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center bg-blue-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <GraduationCap className="w-4 h-4" /> Register as Student
+                </Link>
+                <Link
+                  href="/register?role=landlord"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center bg-emerald-600 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Building2 className="w-4 h-4" /> Register as Landlord
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Click-outside close for role dropdown */}
-      {showRoleMenu && (
+      {/* Click-outside listener for dropdowns */}
+      {(showRoleMenu || showProfileMenu) && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setShowRoleMenu(false)}
+          onClick={() => {
+            setShowRoleMenu(false);
+            setShowProfileMenu(false);
+          }}
         />
       )}
     </header>

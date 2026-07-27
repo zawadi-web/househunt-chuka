@@ -7,7 +7,7 @@ import { Star, ShieldCheck, ThumbsUp, MessageSquarePlus, PlusCircle } from 'luci
 export default function ReviewsPage() {
   const [reviewsList, setReviewsList] = useState(MOCK_REVIEWS);
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
-  const [selectedHouseId, setSelectedHouseId] = useState(MOCK_HOUSES[0].id);
+  const [selectedHouseId, setSelectedHouseId] = useState(MOCK_HOUSES[0]?.id || '');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
 
@@ -16,8 +16,8 @@ export default function ReviewsPage() {
     const newRev = {
       id: `r_${Date.now()}`,
       houseId: selectedHouseId,
-      studentName: "Alex Mutua (BSc Computer Science)",
-      studentAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80",
+      studentName: "Verified Chuka Student",
+      studentAvatar: "",
       rating: Number(rating),
       landlordRating: Number(rating),
       comment: comment,

@@ -14,14 +14,29 @@ import {
 export default function HouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const houseId = resolvedParams.id;
-  const house = MOCK_HOUSES.find((h) => h.id === houseId) || MOCK_HOUSES[0];
+  const house = MOCK_HOUSES.find((h) => h.id === houseId) || MOCK_HOUSES[0] || null;
 
-  const [activeImage, setActiveImage] = useState(house.images[0]?.url || '');
+  const [activeImage, setActiveImage] = useState(house?.images?.[0]?.url || '');
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const houseReviews = MOCK_REVIEWS.filter(r => r.houseId === house.id);
+  const houseReviews = MOCK_REVIEWS.filter(r => house && r.houseId === house.id);
+
+  if (!house) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
+        <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-slate-900">Listing Not Found</h2>
+        <p className="text-sm text-slate-500">This property may have been removed or is pending admin approval.</p>
+        <Link href="/houses" className="inline-block mt-4 bg-brand-primary text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-brand-blue transition-all">
+          Browse All Houses
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">

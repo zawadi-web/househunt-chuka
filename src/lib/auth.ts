@@ -1,13 +1,10 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-
   providers: [
     // ─── Google OAuth ──────────────────────────────────────────
     GoogleProvider({
@@ -66,11 +63,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt' },
 
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+          });
+
+          if (!existingUser) {
+            // Auto-register Google user into Neon PostgreSQL database
+            await prisma.user.create({
+              data: {
+                name: user.name || 'Chuka Student',
+                email: user.email,
+                image: user.image,
+                role: 'STUDENT',
+                verificationStatus: 'UNVERIFIED',
+              },
+            });
+          }
+        } catch (error) {
+          console.error('Error during Google sign-in DB creation:', error);
+        }
+      }
+      return true;
+    },
+
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      const email = user?.email || token?.email;
+      if (email) {
+        const dbUser = await prisma.user.findUnique({ where: { email } });
         if (dbUser) {
+          token.id = dbUser.id;
           token.role = dbUser.role;
           token.verificationStatus = dbUser.verificationStatus;
         }
@@ -82,8 +106,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         const userObj = session.user as any;
         userObj.id = token.id as string;
-        userObj.role = token.role as string;
-        userObj.verificationStatus = token.verificationStatus as string;
+        userObj.role = (token.role as string) || 'STUDENT';
+        userObj.verificationStatus = (token.verificationStatus as string) || 'UNVERIFIED';
       }
       return session;
     },

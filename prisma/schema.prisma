@@ -1,0 +1,257 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  LANDLORD
+  AGENT
+  ADMIN
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum ViewingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_INVESTIGATION
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id                    String              @id @default(cuid())
+  name                  String
+  email                 String              @unique
+  emailVerified         DateTime?
+  image                 String?
+  passwordHash          String?
+  phone                 String?             @unique
+  phoneVerified         Boolean             @default(false)
+  role                  Role                @default(STUDENT)
+  verificationStatus    VerificationStatus  @default(UNVERIFIED)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Verification Documents (For Landlords / Agents)
+  nationalIdNumber      String?
+  nationalIdUrlFront    String?
+  nationalIdUrlBack     String?
+  selfieUrl             String?
+  verifiedAt            DateTime?
+
+  // Subscriptions (Landlord Revenue Model)
+  subscriptionTier      String              @default("FREE") // FREE, PREMIUM
+  subscriptionExpiresAt DateTime?
+
+  // Relations
+  listings              House[]             @relation("LandlordListings")
+  savedHouses           SavedHouse[]
+  reviewsGiven          Review[]            @relation("StudentReviews")
+  viewingBookings       ViewingBooking[]
+  sentMessages          Message[]           @relation("SentMessages")
+  reportsFiled          Report[]            @relation("FiledReports")
+  reportsAgainst        Report[]            @relation("ReportedUser")
+  auditLogs             AuditLog[]
+
+  @@index([role, verificationStatus])
+}
+
+model Town {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "Chuka", "Juja", "Eldoret"
+  slug      String   @unique
+  county    String   // e.g. "Tharaka Nithi"
+  campuses  Campus[]
+  houses    House[]
+}
+
+model Campus {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "Chuka University Main Campus"
+  slug      String   @unique
+  townId    String
+  town      Town     @relation(fields: [townId], references: [id])
+  latitude  Float
+  longitude Float
+  houses    House[]
+}
+
+model House {
+  id                  String         @id @default(cuid())
+  title               String
+  slug                String         @unique
+  description         String
+  rentPerMonth        Float
+  depositRequired     Float
+  availableRooms      Int            @default(1)
+  totalRooms          Int            @default(1)
+  roomType            String         // Single, Bedsitter, 1 Bedroom, 2 Bedroom, Shared
+  
+  // Specific Student Amenities
+  waterAvailability   String         // 24/7 Borehole, City Water, Tank Backup, Periodic
+  electricityType     String         // Prepaid Tokens, Inclusive, Postpaid
+  wifiAvailable       Boolean        @default(false)
+  securityGuarded     Boolean        @default(false)
+  cctv                Boolean        @default(false)
+  gatedFence          Boolean        @default(false)
+  furnished           Boolean        @default(false)
+  parking             Boolean        @default(false)
+  balcony             Boolean        @default(false)
+  garbageCollection   Boolean        @default(true)
+
+  // Location & Geo
+  address             String
+  areaName            String         // e.g., "Ndagani", "Mariani", "Campus Gate B"
+  latitude            Float
+  longitude           Float
+  distanceFromCampus  Float          // Distance in kilometers
+  campusId            String
+  campus              Campus         @relation(fields: [campusId], references: [id])
+  townId              String
+  town                Town           @relation(fields: [townId], references: [id])
+
+  // Status & Anti-Scam
+  status              ListingStatus  @default(PENDING_APPROVAL)
+  isFeatured          Boolean        @default(false)
+  lastVerifiedAt      DateTime?
+  rejectionReason     String?
+
+  // Media
+  images              HouseImage[]
+  videoUrl            String?
+
+  // Ownership
+  landlordId          String
+  landlord            User           @relation("LandlordListings", fields: [landlordId], references: [id])
+
+  // Metrics
+  viewCount           Int            @default(0)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Relations
+  savedBy             SavedHouse[]
+  reviews             Review[]
+  viewingBookings     ViewingBooking[]
+  reports             Report[]
+
+  @@index([status, townId, campusId])
+  @@index([rentPerMonth, distanceFromCampus])
+}
+
+model HouseImage {
+  id         String   @id @default(cuid())
+  houseId    String
+  house      House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  url        String
+  publicId   String
+  imageHash  String?  // Perceptual hash for anti-duplication detection
+  isPrimary  Boolean  @default(false)
+}
+
+model SavedHouse {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  houseId   String
+  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, houseId])
+}
+
+model Review {
+  id             String   @id @default(cuid())
+  houseId        String
+  house          House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User     @relation("StudentReviews", fields: [studentId], references: [id])
+  rating         Int      // 1 to 5 stars
+  landlordRating Int      // 1 to 5 stars
+  comment        String
+  verifiedTenant Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model ViewingBooking {
+  id           String        @id @default(cuid())
+  houseId      String
+  house        House         @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User          @relation(fields: [studentId], references: [id])
+  preferredDate DateTime
+  preferredTime String
+  status       ViewingStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now())
+}
+
+model ChatRoom {
+  id        String    @id @default(cuid())
+  houseId   String?
+  studentId String
+  landlordId String
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  chatRoomId String
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id])
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  reporter       User         @relation("FiledReports", fields: [reporterId], references: [id])
+  reportedUserId String?
+  reportedUser   User?        @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  houseId        String?
+  house          House?       @relation(fields: [houseId], references: [id])
+  reason         String
+  details        String
+  status         ReportStatus @default(PENDING)
+  createdAt      DateTime     @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // e.g. "APPROVE_LISTING", "VERIFY_LANDLORD", "REJECT_LISTING"
+  details   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+}

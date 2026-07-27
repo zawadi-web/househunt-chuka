@@ -11,8 +11,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     // ─── Google OAuth ──────────────────────────────────────────
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || 'dummy_google_id',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy_google_secret',
     }),
 
     // ─── Email / Password ──────────────────────────────────────
@@ -62,7 +62,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        // Fetch latest role from DB on sign-in
         const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
         if (dbUser) {
           token.role = dbUser.role;
@@ -74,9 +73,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.verificationStatus = token.verificationStatus as string;
+        const userObj = session.user as any;
+        userObj.id = token.id as string;
+        userObj.role = token.role as string;
+        userObj.verificationStatus = token.verificationStatus as string;
       }
       return session;
     },

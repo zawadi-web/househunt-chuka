@@ -64,7 +64,6 @@ export default function Footer() {
               <li><Link href="/houses" className="hover:text-emerald-400 transition-colors">Search All Houses</Link></li>
               <li><Link href="/dashboard/student" className="hover:text-emerald-400 transition-colors">Student Dashboard</Link></li>
               <li><Link href="/dashboard/landlord" className="hover:text-emerald-400 transition-colors">Landlord Portal</Link></li>
-              <li><Link href="/dashboard/admin" className="hover:text-emerald-400 transition-colors">Admin Verification</Link></li>
               <li><Link href="/pricing" className="hover:text-emerald-400 transition-colors">Landlord Packages</Link></li>
             </ul>
           </div>

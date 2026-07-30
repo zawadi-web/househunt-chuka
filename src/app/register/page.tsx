@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Home, ShieldCheck, Mail, Lock, User, Phone, IdCard, ArrowRight, GraduationCap, Building2, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Role } from '@/lib/types';
 
@@ -38,6 +39,7 @@ function RegisterForm() {
     setError('');
 
     try {
+      // Step 1: Create the account
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,11 +49,31 @@ function RegisterForm() {
 
       if (!res.ok) {
         setError(data.error || 'Registration failed. Please try again.');
+        return;
+      }
+
+      // Step 2: Auto sign-in with the new credentials
+      setSuccess(true);
+      const signInRes = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInRes?.ok) {
+        // Step 3: Redirect to the correct role-based dashboard
+        const dashboardUrl =
+          role === 'ADMIN' ? '/dashboard/admin' :
+          (role === 'LANDLORD' || role === 'AGENT') ? '/dashboard/landlord' :
+          '/dashboard/student';
+        setTimeout(() => {
+          window.location.href = dashboardUrl;
+        }, 1500);
       } else {
-        setSuccess(true);
+        // Fallback: go to login
         setTimeout(() => {
           window.location.href = '/login';
-        }, 2000);
+        }, 1500);
       }
     } catch {
       setError('Network error. Please check your connection.');

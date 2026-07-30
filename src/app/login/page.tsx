@@ -3,12 +3,18 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { Home, ShieldCheck, Mail, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { signIn, getSession } from 'next-auth/react';
+import { Home, Mail, Lock, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+
+function getDashboardForRole(role?: string) {
+  if (role === 'ADMIN') return '/dashboard/admin';
+  if (role === 'LANDLORD' || role === 'AGENT') return '/dashboard/landlord';
+  return '/dashboard/student';
+}
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard/student';
+  const explicitCallback = searchParams.get('callbackUrl');
   const errorParam = searchParams.get('error');
 
   const [email, setEmail] = useState('');
@@ -28,13 +34,16 @@ function LoginForm() {
         email,
         password,
         redirect: false,
-        callbackUrl,
       });
 
       if (res?.error) {
         setError(res.error || 'Invalid email or password.');
       } else if (res?.ok) {
-        window.location.href = callbackUrl;
+        // Fetch the session to get the actual role and redirect accordingly
+        const session = await getSession();
+        const role = (session?.user as any)?.role;
+        const destination = explicitCallback || getDashboardForRole(role);
+        window.location.href = destination;
       }
     } catch {
       setError('An unexpected error occurred. Please try again.');
@@ -46,7 +55,9 @@ function LoginForm() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      await signIn('google', { callbackUrl });
+      // Google will return the user's role via the session callback, then
+      // the Navbar / middleware can redirect. Use a role-detection callback URL.
+      await signIn('google', { callbackUrl: explicitCallback || '/auth/redirect' });
     } catch {
       setError('Google sign-in failed. Please try again.');
       setGoogleLoading(false);

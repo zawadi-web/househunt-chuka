@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { MOCK_HOUSES } from '@/lib/mock-data';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FilterState, House } from '@/lib/types';
 import HouseCard from '@/components/houses/HouseCard';
 import FilterBar from '@/components/houses/FilterBar';
 import InteractiveMap from '@/components/houses/InteractiveMap';
-import { Map, LayoutGrid, SlidersHorizontal, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Map, LayoutGrid, ShieldCheck, RefreshCw, Loader2 } from 'lucide-react';
 
 export default function BrowseHousesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [houses, setHouses] = useState<House[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
@@ -24,6 +25,27 @@ export default function BrowseHousesPage() {
     furnishedOnly: false,
     verifiedOnly: false,
   });
+
+  const fetchHouses = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/houses?status=ALL');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setHouses(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch houses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHouses();
+  }, []);
 
   const resetFilters = () => {
     setFilters({
@@ -43,13 +65,13 @@ export default function BrowseHousesPage() {
 
   // Filter calculation logic
   const filteredHouses = useMemo(() => {
-    return MOCK_HOUSES.filter((house) => {
+    return houses.filter((house) => {
       // Search query
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const matchesTitle = house.title.toLowerCase().includes(query);
         const matchesArea = house.areaName.toLowerCase().includes(query);
-        const matchesLandlord = house.landlord.name.toLowerCase().includes(query);
+        const matchesLandlord = house.landlord?.name?.toLowerCase().includes(query) || false;
         if (!matchesTitle && !matchesArea && !matchesLandlord) return false;
       }
 
@@ -69,14 +91,15 @@ export default function BrowseHousesPage() {
       }
 
       // Amenities
-      if (filters.water247 && !house.waterAvailability.includes('24/7')) return false;
+      if (filters.water247 && !house.waterAvailability?.includes('24/7')) return false;
       if (filters.wifiOnly && !house.wifiAvailable) return false;
       if (filters.securityGuarded && !house.securityGuarded) return false;
-      if (filters.verifiedOnly && house.landlord.verificationStatus !== 'VERIFIED') return false;
+      if (filters.verifiedOnly && house.landlord?.verificationStatus !== 'VERIFIED') return false;
 
       return true;
     });
-  }, [filters]);
+  }, [houses, filters]);
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">

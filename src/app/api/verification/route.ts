@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { validateVerificationDocument } from '@/lib/validations';
-import { validateUploadFile } from '@/lib/upload-validator';
-import { authorizeRole } from '@/lib/rbac';
+import { auth } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
-  // 1. Strict Rate Limiting (Max 3 submissions per 10 minutes)
+  // 1. Strict Rate Limiting (Max 5 submissions per 10 minutes)
   const clientIp = request.headers.get('x-forwarded-for') || '127.0.0.1';
-  const limiter = rateLimit(`id_verify_${clientIp}`, { limit: 3, windowMs: 10 * 60 * 1000 });
+  const limiter = rateLimit(`id_verify_${clientIp}`, { limit: 5, windowMs: 10 * 60 * 1000 });
 
   if (!limiter.success) {
     return NextResponse.json(
@@ -17,19 +17,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const session = await auth();
+    const sessionUser = session?.user as any;
     const body = await request.json();
 
-    // 2. Authorization Check (Only LANDLORD or AGENT can submit verification)
-    const mockUser = { id: body.landlordId || "l1", role: (body.userRole || 'LANDLORD') as any };
-    const authCheck = authorizeRole(mockUser, ['LANDLORD', 'AGENT', 'ADMIN']);
-    if (!authCheck.authorized) {
+    const targetUserId = sessionUser?.id || body.landlordId || body.userId;
+
+    if (!targetUserId && !body.email) {
       return NextResponse.json(
-        { success: false, message: authCheck.reason },
-        { status: 403 }
+        { success: false, message: 'User identification required. Please log in or provide user details.' },
+        { status: 400 }
       );
     }
 
-    // 3. Input Validation (Kenyan National ID 7-8 digits)
+    // Input Validation (Kenyan National ID 7-8 digits)
     const validation = validateVerificationDocument(body);
     if (!validation.isValid) {
       return NextResponse.json(
@@ -38,31 +39,58 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. File Upload Check (MIME type and size validation)
-    if (body.fileInfo) {
-      const fileCheck = validateUploadFile(
-        body.fileInfo.name || 'id.jpg',
-        body.fileInfo.type || 'image/jpeg',
-        body.fileInfo.size || 2 * 1024 * 1024
+    const nationalIdUrlFront = body.nationalIdUrlFront || body.idFrontPreview;
+    const nationalIdUrlBack = body.nationalIdUrlBack || body.idBackPreview;
+    const selfieUrl = body.selfieUrl || body.selfiePreview;
+
+    if (!nationalIdUrlFront || !selfieUrl) {
+      return NextResponse.json(
+        { success: false, message: 'Both National ID image and selfie photo are required.' },
+        { status: 400 }
       );
-      if (!fileCheck.isValid) {
-        return NextResponse.json(
-          { success: false, message: fileCheck.error },
-          { status: 400 }
-        );
-      }
     }
+
+    // Persist to PostgreSQL via Prisma
+    const updatedUser = targetUserId
+      ? await prisma.user.update({
+          where: { id: targetUserId },
+          data: {
+            nationalIdNumber: body.nationalIdNumber,
+            nationalIdUrlFront,
+            nationalIdUrlBack: nationalIdUrlBack || null,
+            selfieUrl,
+            verificationStatus: 'PENDING',
+          },
+        })
+      : await prisma.user.update({
+          where: { email: body.email },
+          data: {
+            nationalIdNumber: body.nationalIdNumber,
+            nationalIdUrlFront,
+            nationalIdUrlBack: nationalIdUrlBack || null,
+            selfieUrl,
+            verificationStatus: 'PENDING',
+          },
+        });
 
     return NextResponse.json({
       success: true,
       message: 'Government ID & selfie submitted successfully. Status set to PENDING admin verification.',
       status: 'PENDING',
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        verificationStatus: updatedUser.verificationStatus,
+      },
       submittedAt: new Date().toISOString()
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[VERIFICATION API ERROR]', error);
     return NextResponse.json(
-      { success: false, message: 'Internal Server Error' },
+      { success: false, message: 'Failed to record verification documents. Please try again.' },
       { status: 500 }
     );
   }
 }
+

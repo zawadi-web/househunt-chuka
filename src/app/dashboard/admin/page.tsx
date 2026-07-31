@@ -287,6 +287,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 // ─── ID Documents Verification Drawer/Modal ─────────────────────
 function LandlordIdModal({ landlord, onClose, onUpdateStatus }: { landlord: any, onClose: () => void, onUpdateStatus: (userId: string, status: string) => void }) {
   const [updating, setUpdating] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleAction = async (status: 'VERIFIED' | 'REJECTED') => {
     setUpdating(true);
@@ -297,7 +298,7 @@ function LandlordIdModal({ landlord, onClose, onUpdateStatus }: { landlord: any,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-800/50">
@@ -332,31 +333,62 @@ function LandlordIdModal({ landlord, onClose, onUpdateStatus }: { landlord: any,
         </div>
 
         {/* Documents Gallery */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* ID Front */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-300">National ID Front</label>
             {landlord.nationalIdUrlFront ? (
-              <img src={landlord.nationalIdUrlFront} alt="ID Front" className="w-full h-44 object-cover rounded-2xl border border-slate-800 bg-slate-950" />
+              <div className="relative group cursor-pointer" onClick={() => setPreviewImage(landlord.nationalIdUrlFront)}>
+                <img src={landlord.nationalIdUrlFront} alt="ID Front" className="w-full h-44 object-cover rounded-2xl border border-slate-800 bg-slate-950 group-hover:opacity-90 transition-opacity" />
+                <span className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">Click to Zoom</span>
+              </div>
             ) : (
               <div className="w-full h-44 rounded-2xl border border-dashed border-slate-800 bg-slate-950/50 flex flex-col items-center justify-center text-slate-500 text-xs">
-                <FileText className="w-8 h-8 mb-1" />
-                <span>Front ID image uploaded</span>
+                <FileText className="w-8 h-8 mb-1 opacity-50" />
+                <span>Front ID Not Uploaded</span>
               </div>
             )}
           </div>
 
+          {/* ID Back */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-300">National ID Back</label>
+            {landlord.nationalIdUrlBack ? (
+              <div className="relative group cursor-pointer" onClick={() => setPreviewImage(landlord.nationalIdUrlBack)}>
+                <img src={landlord.nationalIdUrlBack} alt="ID Back" className="w-full h-44 object-cover rounded-2xl border border-slate-800 bg-slate-950 group-hover:opacity-90 transition-opacity" />
+                <span className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">Click to Zoom</span>
+              </div>
+            ) : (
+              <div className="w-full h-44 rounded-2xl border border-dashed border-slate-800 bg-slate-950/50 flex flex-col items-center justify-center text-slate-500 text-xs">
+                <FileText className="w-8 h-8 mb-1 opacity-50" />
+                <span>Back ID Not Uploaded</span>
+              </div>
+            )}
+          </div>
+
+          {/* Selfie */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-300">Landlord Live Selfie</label>
             {landlord.selfieUrl ? (
-              <img src={landlord.selfieUrl} alt="Selfie" className="w-full h-44 object-cover rounded-2xl border border-slate-800 bg-slate-950" />
+              <div className="relative group cursor-pointer" onClick={() => setPreviewImage(landlord.selfieUrl)}>
+                <img src={landlord.selfieUrl} alt="Selfie" className="w-full h-44 object-cover rounded-2xl border border-slate-800 bg-slate-950 group-hover:opacity-90 transition-opacity" />
+                <span className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">Click to Zoom</span>
+              </div>
             ) : (
               <div className="w-full h-44 rounded-2xl border border-dashed border-slate-800 bg-slate-950/50 flex flex-col items-center justify-center text-slate-500 text-xs">
-                <UserCheck className="w-8 h-8 mb-1" />
-                <span>Live selfie uploaded</span>
+                <UserCheck className="w-8 h-8 mb-1 opacity-50" />
+                <span>Selfie Not Uploaded</span>
               </div>
             )}
           </div>
         </div>
+
+        {/* Full Image Preview Modal */}
+        {previewImage && (
+          <div className="fixed inset-0 z-60 bg-slate-950/90 flex items-center justify-center p-4 cursor-pointer" onClick={() => setPreviewImage(null)}>
+            <img src={previewImage} alt="Document Preview" className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" />
+          </div>
+        )}
 
         <div className="flex gap-3 pt-2 border-t border-slate-800">
           <button

@@ -1,27 +1,54 @@
 "use client";
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { MOCK_HOUSES, MOCK_REVIEWS } from '@/lib/mock-data';
 import BookingModal from '@/components/houses/BookingModal';
 import ReportModal from '@/components/houses/ReportModal';
 import { 
   ShieldCheck, MapPin, Droplets, Wifi, Lock, Zap, 
   CheckCircle2, Star, Calendar, MessageSquare, AlertTriangle, 
-  ChevronRight, Heart, Share2, Phone, UserCheck, ShieldAlert 
+  ChevronRight, Heart, Phone, UserCheck, ShieldAlert, Loader2 
 } from 'lucide-react';
 
 export default function HouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const houseId = resolvedParams.id;
-  const house = MOCK_HOUSES.find((h) => h.id === houseId) || MOCK_HOUSES[0] || null;
-
-  const [activeImage, setActiveImage] = useState(house?.images?.[0]?.url || '');
+  const [house, setHouse] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState('');
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const houseReviews = MOCK_REVIEWS.filter(r => house && r.houseId === house.id);
+  useEffect(() => {
+    async function loadHouse() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/houses/${houseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.house) {
+            setHouse(data.house);
+            setActiveImage(data.house.images?.[0]?.url || '');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading house details:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadHouse();
+  }, [houseId]);
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
+        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto" />
+        <p className="text-sm font-bold text-slate-600">Loading house details from database...</p>
+      </div>
+    );
+  }
 
   if (!house) {
     return (
@@ -37,6 +64,7 @@ export default function HouseDetailPage({ params }: { params: Promise<{ id: stri
       </div>
     );
   }
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
@@ -129,9 +157,9 @@ export default function HouseDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Thumbnail Stack */}
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-          {house.images.map((img) => (
+          {(house.images || []).map((img: any) => (
             <button
-              key={img.id}
+              key={img.id || img.url}
               onClick={() => setActiveImage(img.url)}
               className={`relative aspect-[16/9] rounded-2xl overflow-hidden border-2 transition-all ${
                 activeImage === img.url ? 'border-brand-primary ring-4 ring-brand-primary/20' : 'border-transparent opacity-80 hover:opacity-100'
@@ -251,7 +279,7 @@ export default function HouseDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="space-y-4 pt-2">
-              {houseReviews.map((review) => (
+              {(house.reviews || []).map((review: any) => (
                 <div key={review.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">

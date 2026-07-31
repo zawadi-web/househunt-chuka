@@ -1,20 +1,36 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MOCK_HOUSES } from '@/lib/mock-data';
 import HouseCard from '@/components/houses/HouseCard';
 import { 
   Search, ShieldCheck, MapPin, CheckCircle2, 
   ArrowRight, Sparkles, Building2, UserCheck, 
-  FileCheck2, ShieldAlert, Heart, Star, PhoneCall, Home, PlusCircle
+  FileCheck2, ShieldAlert, Heart, Star, PhoneCall, Home, PlusCircle 
 } from 'lucide-react';
 
 export default function LandingPage() {
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedRoomType, setSelectedRoomType] = useState('ALL');
+  const [featuredHouses, setFeaturedHouses] = useState<any[]>([]);
 
-  const featuredHouses = MOCK_HOUSES;
+  useEffect(() => {
+    async function loadFeatured() {
+      try {
+        const res = await fetch('/api/houses?status=ALL');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data)) {
+            setFeaturedHouses(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching featured houses:', err);
+      }
+    }
+    loadFeatured();
+  }, []);
+
 
   return (
     <div className="space-y-20 pb-16">

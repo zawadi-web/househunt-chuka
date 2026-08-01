@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import {
   Heart, Calendar, MessageSquare, ShieldCheck, Search,
   Upload, User, LogOut, Home, Bell, AlertTriangle, X, 
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 export default function StudentDashboardPage() {
+  const { data: session } = useSession();
   const [name, setName] = useState('');
   const [course, setCourse] = useState('');
   const [phone, setPhone] = useState('');
@@ -21,19 +22,38 @@ export default function StudentDashboardPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
 
-  // Load saved profile from localStorage as a cache layer
+  // Sync profile with session and DB
   useEffect(() => {
-    const saved = localStorage.getItem('househunt_profile');
-    if (saved) {
+    if (!session?.user) return;
+
+    const userEmail = session.user.email || '';
+
+    // Initialize from session first
+    if (session.user.name) setName(session.user.name);
+    if (session.user.image) setAvatarPreview(session.user.image);
+
+    // Read user-specific course from localStorage if present
+    const savedCourse = localStorage.getItem(`househunt_course_${userEmail}`);
+    if (savedCourse) setCourse(savedCourse);
+
+    // Fetch fresh profile from API
+    async function loadProfile() {
       try {
-        const profile = JSON.parse(saved);
-        if (profile.name) setName(profile.name);
-        if (profile.course) setCourse(profile.course);
-        if (profile.phone) setPhone(profile.phone);
-        if (profile.avatarPreview) setAvatarPreview(profile.avatarPreview);
-      } catch (_) {}
+        const res = await fetch('/api/profile');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            if (data.user.name) setName(data.user.name);
+            if (data.user.phone) setPhone(data.user.phone);
+            if (data.user.image) setAvatarPreview(data.user.image);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
     }
-  }, []);
+    loadProfile();
+  }, [session]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,13 +92,10 @@ export default function StudentDashboardPage() {
       if (!res.ok) {
         setSaveError(data.error || 'Failed to save profile.');
       } else {
-        // Persist to localStorage so refreshes don't lose the data
-        localStorage.setItem('househunt_profile', JSON.stringify({
-          name: data.user?.name || name,
-          phone: data.user?.phone || phone,
-          course,
-          avatarPreview,
-        }));
+        const userEmail = session?.user?.email || '';
+        if (userEmail && course) {
+          localStorage.setItem(`househunt_course_${userEmail}`, course);
+        }
         setSaveSuccess(true);
         setEditMode(false);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -90,7 +107,7 @@ export default function StudentDashboardPage() {
     }
   };
 
-  const displayName = name || 'New Student';
+  const displayName = name || session?.user?.name || 'Student';
   const displayCourse = course || 'Update your course in profile';
 
   return (

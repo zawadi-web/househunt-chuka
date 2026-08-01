@@ -95,7 +95,7 @@ export default function FilterBar({ filters, setFilters, onReset }: FilterBarPro
         <input
           type="range"
           min={1000}
-          max={40000}
+          max={60000}
           step={500}
           value={filters.maxPrice}
           onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
@@ -103,7 +103,7 @@ export default function FilterBar({ filters, setFilters, onReset }: FilterBarPro
         />
         <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
           <span>KSh 1,000/mo</span>
-          <span>KSh 40,000/sem</span>
+          <span>KSh 60,000/mo</span>
         </div>
         <p className="text-[10px] text-slate-400 mt-1">Applies to both monthly rent &amp; per-semester hostel prices</p>
       </div>
@@ -117,7 +117,7 @@ export default function FilterBar({ filters, setFilters, onReset }: FilterBarPro
         <input
           type="range"
           min={0.2}
-          max={3.0}
+          max={10.0}
           step={0.1}
           value={filters.maxDistance}
           onChange={(e) => setFilters(prev => ({ ...prev, maxDistance: Number(e.target.value) }))}
@@ -125,7 +125,7 @@ export default function FilterBar({ filters, setFilters, onReset }: FilterBarPro
         />
         <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
           <span>0.2 km (Gate B)</span>
-          <span>3.0 km (Town)</span>
+          <span>10.0 km</span>
         </div>
       </div>
 

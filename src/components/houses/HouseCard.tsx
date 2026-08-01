@@ -35,7 +35,7 @@ export default function HouseCard({ house, onSaveToggle, isSaved = false }: Hous
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-black/20" />
 
         {/* Verification & Trust Badge */}
-        {house.landlord.verificationStatus === 'VERIFIED' && (
+        {house.landlord?.verificationStatus === 'VERIFIED' && (
           <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 shadow-md">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>VERIFIED LANDLORD</span>
@@ -81,8 +81,8 @@ export default function HouseCard({ house, onSaveToggle, isSaved = false }: Hous
             </span>
             <div className="flex items-center space-x-1 bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md text-[11px]">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{house.averageRating}</span>
-              <span className="text-slate-400 font-normal">({house.reviewCount})</span>
+              <span>{house.averageRating ?? 5.0}</span>
+              <span className="text-slate-400 font-normal">({house.reviewCount ?? 0})</span>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ export default function HouseCard({ house, onSaveToggle, isSaved = false }: Hous
 
           {/* Amenities Quick Row */}
           <div className="mt-3.5 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
-            {house.waterAvailability.includes('24/7') && (
+            {house.waterAvailability?.includes('24/7') && (
               <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded flex items-center gap-1">
                 <Droplets className="w-3 h-3 text-blue-500" /> 24/7 Water
               </span>

@@ -17,6 +17,28 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll unread chat message count when logged in
+  React.useEffect(() => {
+    if (!isLoggedIn) return;
+
+    async function checkUnread() {
+      try {
+        const res = await fetch('/api/chat/unread');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && typeof data.unreadCount === 'number') {
+            setUnreadCount(data.unreadCount);
+          }
+        }
+      } catch (_) {}
+    }
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 5000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
 
   const getDashboardPath = () => {
     if (user?.role === 'ADMIN') return '/dashboard/admin';
@@ -81,15 +103,20 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center space-x-3 bg-white border border-slate-200 hover:border-brand-primary/50 p-1.5 pr-3 rounded-2xl shadow-sm transition-all"
+                  className="flex items-center space-x-3 bg-white border border-slate-200 hover:border-brand-primary/50 p-1.5 pr-3 rounded-2xl shadow-sm transition-all relative"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-brand-primary text-white font-extrabold text-sm flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-brand-primary text-white font-extrabold text-sm flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
                     {user?.image ? (
                       <img src={user.image} alt={user.name || 'User'} className="w-full h-full object-cover" />
                     ) : (
                       <span>{(user?.name || 'U').charAt(0).toUpperCase()}</span>
                     )}
                   </div>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white font-extrabold text-[9px] rounded-full flex items-center justify-center ring-2 ring-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                   <div className="text-left leading-tight">
                     <div className="font-extrabold text-xs text-slate-900 truncate max-w-[120px]">
                       {user?.name || 'My Account'}
@@ -141,10 +168,17 @@ export default function Navbar() {
                       <Link
                         href="/chat"
                         onClick={() => setShowProfileMenu(false)}
-                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-100 transition-all"
+                        className="flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-slate-100 transition-all"
                       >
-                        <MessageSquare className="w-4 h-4 text-emerald-600" />
-                        <span>My Messages</span>
+                        <div className="flex items-center gap-3">
+                          <MessageSquare className="w-4 h-4 text-emerald-600" />
+                          <span>My Messages</span>
+                        </div>
+                        {unreadCount > 0 && (
+                          <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                            {unreadCount}
+                          </span>
+                        )}
                       </Link>
 
                       <div className="border-t border-slate-100 my-1 pt-1">

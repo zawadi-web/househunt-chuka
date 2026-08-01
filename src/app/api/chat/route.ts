@@ -11,7 +11,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Authentication required to access chat.' }, { status: 401 });
     }
 
-    // Get DB User ID
     let currentUserId = userSession.id;
     if (!currentUserId && userSession.email) {
       const dbUser = await prisma.user.findUnique({ where: { email: userSession.email } });
@@ -24,9 +23,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const landlordId = searchParams.get('landlordId') || searchParams.get('landlord');
-    const roomId = searchParams.get('roomId');
+    const markReadRoomId = searchParams.get('markRead');
 
-    // If landlordId is provided, find or create chat room between student and landlord
+    // If markReadRoomId parameter is passed, mark all incoming messages in that room as read
+    if (markReadRoomId) {
+      await prisma.message.updateMany({
+        where: {
+          chatRoomId: markReadRoomId,
+          senderId: { not: currentUserId },
+          isRead: false,
+        },
+        data: { isRead: true },
+      });
+    }
+
+    // Find or create chat room if landlordId parameter is provided
     if (landlordId && landlordId !== currentUserId) {
       let existingRoom = await prisma.chatRoom.findFirst({
         where: {
@@ -35,36 +46,15 @@ export async function GET(req: NextRequest) {
             { studentId: landlordId, landlordId: currentUserId },
           ],
         },
-        include: {
-          messages: {
-            orderBy: { createdAt: 'asc' },
-            include: {
-              sender: {
-                select: { id: true, name: true, image: true, role: true },
-              },
-            },
-          },
-        },
       });
 
       if (!existingRoom) {
-        // Find landlord user info to verify existence
         const targetLandlord = await prisma.user.findUnique({ where: { id: landlordId } });
         if (targetLandlord) {
-          existingRoom = await prisma.chatRoom.create({
+          await prisma.chatRoom.create({
             data: {
               studentId: currentUserId,
               landlordId: targetLandlord.id,
-            },
-            include: {
-              messages: {
-                orderBy: { createdAt: 'asc' },
-                include: {
-                  sender: {
-                    select: { id: true, name: true, image: true, role: true },
-                  },
-                },
-              },
             },
           });
         }
@@ -99,7 +89,6 @@ export async function GET(req: NextRequest) {
       if (r.landlordId !== currentUserId) otherUserIds.add(r.landlordId);
     });
 
-    // If target landlord was passed but had no room yet, add target landlord to user IDs
     if (landlordId && landlordId !== currentUserId) {
       otherUserIds.add(landlordId);
     }
@@ -114,12 +103,15 @@ export async function GET(req: NextRequest) {
         image: true,
         role: true,
         verificationStatus: true,
+        updatedAt: true,
       },
     });
 
     const userMap = new Map(otherUsers.map(u => [u.id, u]));
 
-    // Format rooms with contact participant info
+    // Total unread count across all rooms
+    let totalUnreadCount = 0;
+
     const formattedRooms = rooms.map(room => {
       const otherId = room.studentId === currentUserId ? room.landlordId : room.studentId;
       const contact = userMap.get(otherId) || {
@@ -130,11 +122,17 @@ export async function GET(req: NextRequest) {
         image: null,
         role: 'LANDLORD',
         verificationStatus: 'VERIFIED',
+        updatedAt: new Date(),
       };
+
+      // Calculate unread count for messages sent to currentUserId
+      const unreadCount = room.messages.filter(m => m.senderId !== currentUserId && !m.isRead).length;
+      totalUnreadCount += unreadCount;
 
       return {
         id: room.id,
         contact,
+        unreadCount,
         messages: room.messages.map(m => ({
           id: m.id,
           senderId: m.senderId,
@@ -150,6 +148,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       currentUserId,
+      totalUnreadCount,
       rooms: formattedRooms,
     });
 
@@ -187,7 +186,6 @@ export async function POST(req: NextRequest) {
 
     let targetRoomId = chatRoomId;
 
-    // If chatRoomId is not provided, find or create room with recipient/landlord
     if (!targetRoomId) {
       const targetUserId = landlordId || recipientId;
       if (!targetUserId) {
@@ -214,16 +212,17 @@ export async function POST(req: NextRequest) {
       targetRoomId = room.id;
     }
 
-    // Create Message in DB
+    // Create Message
     const newMessage = await prisma.message.create({
       data: {
         chatRoomId: targetRoomId,
         senderId: currentUserId,
         content: content.trim(),
+        isRead: false,
       },
     });
 
-    // Update ChatRoom updatedAt timestamp
+    // Touch room updatedAt
     await prisma.chatRoom.update({
       where: { id: targetRoomId },
       data: { updatedAt: new Date() },
